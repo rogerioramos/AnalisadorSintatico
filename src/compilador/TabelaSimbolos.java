@@ -3,16 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package token;
+package compilador;
 
 /**
  *
  * @author antoniofranco
  */
-public class Delimitador extends TokenSimples {
-
-    public Delimitador(char lexema, int linha, int coluna) {
-        super(Character.toString(lexema), "DELIMITADOR", linha, coluna);
-    }
+public class TabelaSimbolos {
     
 }

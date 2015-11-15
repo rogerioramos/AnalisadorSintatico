@@ -1,10 +1,10 @@
 package token;
 
-public abstract class TokenComSimbolo extends Token {
+public abstract class TokenComArgumento extends Token {
     
     private int idSimbolo;
 
-    public TokenComSimbolo(int idSimbolo, String tipo, int linha, int coluna) {
+    public TokenComArgumento(int idSimbolo, String tipo, int linha, int coluna) {
         super(tipo, linha, coluna);
         setIdSimbolo(idSimbolo);
     }

@@ -6,7 +6,7 @@ import token.*;
 
 public class AnalisadorLexico {
     
-    static char [] alfabeto = {
+    private static char [] alfabeto = {
         'a','b','c','d','e','f','g','h','i','j','k','l','m',
         'n','o','p','q','r','s','t','u','v','w','x','y','z',
         'A','B','C','D','E','F','G','H','I','J','K','L','M',
@@ -15,54 +15,49 @@ public class AnalisadorLexico {
         '=','>','<','!','+','-','/','*','(',')','[',']',';','"','\'','.',
         ' ','\t','\n', '\r'
     };
-    static char [] caracteresDelimitadores = {'=','>','<','!','+','-','/','*','(',')','[',']',';','"','\'',' ','\t','\n','\r', (char) -1};
+    private static char [] caracteresDelimitadores = {'=','>','<','!','+','-','/','*','(',')','[',']',';','"','\'',' ','\t','\n','\r', (char) -1};
     static Map<Integer, Lexema> tabelaSimbolos = new HashMap<>();
     static List<Token> listaTokens = new ArrayList<>();
     static List<ErroLexico> errosLexicos = new ArrayList<>();
     
     
-    public static void main(String[] args) {
-        
-        if (args.length == 0){
-            System.out.println("Informe o nome do arquivo fonte como parametro.");
-            System.exit(1);
-        }
-        
-        String nomeArquivo = args[0];
-        
+    private int linhaAtual = 1;
+    private int colunaAtual = 0;
+    
+    private boolean isLiteralTexto = false;
+    private boolean isLiteralChar = false;
+    private boolean isLiteralNumeroNegativo = false;
+    
+    private BufferedReader buffer1;
+    private BufferedReader buffer2;
+
+    public AnalisadorLexico(String arquivoFonte) {
         try {
-            
-            // Abertura do arquivo e inicializacao do buffer
-            FileInputStream fis = new FileInputStream(nomeArquivo);
-            BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-            
-            // variaveis para controle de linha e coluna
-            int linhaAtual = 1;
-            int colunaAtual = 0;
-            
-            
-            // string auxiliar para armazenamento do lexema de um token
-            String lexemaTemporario = "";
-            
-            // variavel boleana para controle de tokens literais
-            boolean isLiteralTexto = false;
-            boolean isLiteralChar = false;
-            boolean isLiteralNumeroNegativo = false;
-            
-            char caractereAtual;
-            char proximoCaractere;
-            
-            // enquanto houver caracteres no arquivo...
-            while (br.ready()){
-                Token token;
+            FileInputStream fis1 = new FileInputStream(arquivoFonte);
+            BufferedReader buffer1 = new BufferedReader(new InputStreamReader(fis1));
+            FileInputStream fis2 = new FileInputStream(arquivoFonte);
+            BufferedReader buffer2 = new BufferedReader(new InputStreamReader(fis2));
+        } catch (FileNotFoundException e){
+            System.out.println("Arquivo fonte não encontrado. " + e.getMessage());
+        }
+    }
+    
+    
+    public Token getNextToken(){
+        Token token;
+        String lexemaTemporario = "";
+        char caractereAtual;
+        char proximoCaractere;
+
+        try {
+            while (buffer1.ready()){
+                caractereAtual = (char) buffer1.read();
+                buffer2.skip(1);
                 
-                caractereAtual = (char) br.read();
-                
-                // pega proximo caractere
-                br.mark(2);
-                proximoCaractere = (char) br.read();
-                br.reset();
-                
+                buffer2.mark(0);
+                proximoCaractere = (char) buffer2.read();
+                buffer2.reset();
+                                            
                 // calcula linha e coluna
                 if (caractereAtual == '\n'){
                     linhaAtual++;
@@ -77,19 +72,12 @@ public class AnalisadorLexico {
                     continue;
                 }
                 
-                // se estiver formando um literal char, adiciona o caractere e continua
-                if (isLiteralChar && caractereAtual != '\''){
-                    lexemaTemporario = lexemaTemporario + caractereAtual;
-                    continue;
-                }
-                
                 // se houver tentativa de inserir um caractere invalido...
                 if (!isSimboloValido(caractereAtual)){
                     errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual,
                             "Caractere " + caractereAtual + " invalido"));
                     continue;
                 }
-                
                 
                 char auxCaractereAtual = caractereAtual;
                 char auxProximoCaractere;
@@ -98,12 +86,12 @@ public class AnalisadorLexico {
                 // armazena os caracteres em uma string temporaria até encontrar um delimitador...
                 while (!isCaractereDelimitador(auxCaractereAtual)){
                     lexemaTemporario = lexemaTemporario + auxCaractereAtual;
-                    br.mark(2);
-                    auxProximoCaractere = (char) br.read();
-                    br.reset();
+                    buffer1.mark(2);
+                    auxProximoCaractere = (char) buffer1.read();
+                    buffer1.reset();
                     if (isCaractereDelimitador(auxProximoCaractere))
                         break;
-                    auxCaractereAtual = (char) br.read();
+                    auxCaractereAtual = (char) buffer1.read();
                     // calcula linha e coluna
                     if (auxCaractereAtual == '\n'){
                         auxLinhaAtual++;
@@ -149,15 +137,15 @@ public class AnalisadorLexico {
                         int idSimbolo = addTabelaSimbolos(lexema);
                         token = new LiteralNumeroReal(idSimbolo, linhaAtual, colunaAtual);
                     } else {
-                        token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
                         errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual,
                             "Sequência de caracteres " + lexemaTemporario + " inválida"));
+                        token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
                     }
-                    listaTokens.add(token);
+                    //listaTokens.add(token);
                     lexemaTemporario = "";
                     linhaAtual = auxLinhaAtual;
                     colunaAtual = auxColunaAtual;
-                    continue;
+                    return token;
                 }
                 
                 switch (caractereAtual){
@@ -165,7 +153,7 @@ public class AnalisadorLexico {
                         if (proximoCaractere == '='){
                             token = new OperadorIgualdade(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
-                            br.skip(1);
+                            buffer1.skip(1);
                         } else
                             token = new OperadorAtribuicao(caractereAtual, linhaAtual, colunaAtual);
                         addToken(token);
@@ -175,7 +163,7 @@ public class AnalisadorLexico {
                         if (proximoCaractere == '='){
                             token = new OperadorMaiorIgualQue(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
-                            br.skip(1);
+                            buffer1.skip(1);
                         } else
                             token = new OperadorMaiorQue(caractereAtual, linhaAtual, colunaAtual);
                         addToken(token);
@@ -185,7 +173,7 @@ public class AnalisadorLexico {
                         if (proximoCaractere == '='){
                             token = new OperadorMenorIgualQue(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
-                            br.skip(1);
+                            buffer1.skip(1);
                         } else
                             token = new OperadorMenorQue(caractereAtual, linhaAtual, colunaAtual);
                         addToken(token);
@@ -195,7 +183,7 @@ public class AnalisadorLexico {
                         if (proximoCaractere == '='){
                             token = new OperadorDiferenca(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
-                            br.skip(1);
+                            buffer1.skip(1);
                         } else
                             token = new Invalido(Character.toString(caractereAtual),linhaAtual, colunaAtual);
                         addToken(token);
@@ -203,27 +191,27 @@ public class AnalisadorLexico {
                     }
                     case '+':{
                         token = new OperadorSoma(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }                
                     case '-':{
                         if (Character.isDigit(proximoCaractere)){
                             isLiteralNumeroNegativo = true;
                         } else {
                             token = new OperadorSubtracao(caractereAtual, linhaAtual, colunaAtual);
-                            addToken(token);
+                            return token;
                         }
                         break;
                     }
                     case '/':{
                         token = new OperadorDivisao(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '*':{
                         token = new OperadorMultiplicacao(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '(':
                     case ')':
@@ -231,8 +219,8 @@ public class AnalisadorLexico {
                     case ']':
                     case ';':{
                         token = new Delimitador(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '\'':{
                         token = new Delimitador(caractereAtual, linhaAtual, colunaAtual);
@@ -268,34 +256,29 @@ public class AnalisadorLexico {
                     }
                     default: {
                         token = new Invalido(Character.toString(caractereAtual), linhaAtual, colunaAtual);
-                        addToken(token);
                         errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Caractere " + caractereAtual + " invalido"));
+                        return token;
                     }
-                }
+                }                
+                
             }
-            
-            
             
             // se ficou algum literal sem fechar...
             if (isLiteralTexto){
-                Token token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
                 errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Esperando \" após " + lexemaTemporario));
-                addToken(token);
+                token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
+                return token;
             } else if (isLiteralChar){
-                Token token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
                 errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Esperando \' após " + lexemaTemporario));
-                addToken(token);                
-            }
-            
-        } catch (FileNotFoundException e) {
-            System.out.println("Arquivo fonte não encontrado. " + e.getMessage());
-        } catch (IOException e){
+                token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
+                return token;
+            }            
+     
+        } catch (IOException e) {
             System.out.println("Falha ao ler arquivo fonte. " + e.getMessage());
         }
-        
-        printTabelaSimbolos();
-        printListaTokens();
-        printListaErros();
+
+        return null;
     }
     
     public static boolean isSimboloValido(char simbolo){
@@ -310,7 +293,7 @@ public class AnalisadorLexico {
         return false;
     }
     
-    public static boolean isIdentificador(String texto){
+    private static boolean isIdentificador(String texto){
         
         // verifica se o primeiro caractere é letra
         if (!Character.isLetter(texto.charAt(0)))
@@ -325,7 +308,7 @@ public class AnalisadorLexico {
         return true;
     }
     
-    public static boolean isNumeroInteiro(String texto){
+    private static boolean isNumeroInteiro(String texto){
         if (texto.substring(0, 1).equals("-"))
             texto = texto.substring(1);
         
@@ -336,7 +319,7 @@ public class AnalisadorLexico {
         return true;
     }
     
-    public static boolean isNumeroReal(String texto){
+    private static boolean isNumeroReal(String texto){
         // se nao possui ponto retorna falso
         if (!texto.contains("."))
             return false;
@@ -390,11 +373,11 @@ public class AnalisadorLexico {
     public static void printListaTokens(){
         System.out.println("\nLista de Tokens:");
         for (Token i : listaTokens){
-            if (i instanceof TokenSemSimbolo)
-                System.out.println("<" + i.getTipo() + "," + ((TokenSemSimbolo)i).getLexema() 
+            if (i instanceof TokenSimples)
+                System.out.println("<" + i.getTipo() + "," + ((TokenSimples)i).getLexema() 
                         + "> " + i.getLinha() + " - " + i.getColuna());
-            if (i instanceof TokenComSimbolo)
-                System.out.println("<" + i.getTipo() + "," + ((TokenComSimbolo)i).getIdSimbolo()
+            if (i instanceof TokenComArgumento)
+                System.out.println("<" + i.getTipo() + "," + ((TokenComArgumento)i).getIdSimbolo()
                         + "> " + i.getLinha() + " - " + i.getColuna());
         }
     }

@@ -1,10 +1,10 @@
 package token;
 
-public abstract class TokenSemSimbolo extends Token {
+public abstract class TokenSimples extends Token {
     
     private String lexema;
 
-    public TokenSemSimbolo(String lexema, String tipo, int linha, int coluna) {
+    public TokenSimples(String lexema, String tipo, int linha, int coluna) {
         super(tipo, linha, coluna);
         setLexema(lexema);
     }
