@@ -1,0 +1,2 @@
+teste = - 1.9 @
+teste = "um texto qualquer"
