@@ -2,9 +2,4 @@ teste = 1
 teste == 1
 coisa == 2
 if;
-isso = "algum texto que nao tera fim
-
-
-e continua...
-
-ops
+identi = "if for"

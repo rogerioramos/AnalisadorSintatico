@@ -2,6 +2,8 @@ package analisadorlexico;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import token.*;
 
 public class AnalisadorLexico {
@@ -23,20 +25,30 @@ public class AnalisadorLexico {
     
     private int linhaAtual = 1;
     private int colunaAtual = 0;
+    private int linhaLiteral = 0;
+    private int colunaLiteral = 0;
     
     private boolean isLiteralTexto = false;
     private boolean isLiteralChar = false;
     private boolean isLiteralNumeroNegativo = false;
     
+    private Token lastToken;
+    
+    private String arquivoFonte;
     private BufferedReader buffer1;
     private BufferedReader buffer2;
+    
+    private int caracteresLidos = 0;
+    private int caracteresLidosLiteral = 0;
+    
 
     public AnalisadorLexico(String arquivoFonte) {
+        this.arquivoFonte = arquivoFonte;
         try {
-            FileInputStream fis1 = new FileInputStream(arquivoFonte);
-            BufferedReader buffer1 = new BufferedReader(new InputStreamReader(fis1));
-            FileInputStream fis2 = new FileInputStream(arquivoFonte);
-            BufferedReader buffer2 = new BufferedReader(new InputStreamReader(fis2));
+            FileInputStream fis1 = new FileInputStream(this.arquivoFonte);
+            this.buffer1 = new BufferedReader(new InputStreamReader(fis1));
+            FileInputStream fis2 = new FileInputStream(this.arquivoFonte);
+            this.buffer2 = new BufferedReader(new InputStreamReader(fis2));
         } catch (FileNotFoundException e){
             System.out.println("Arquivo fonte não encontrado. " + e.getMessage());
         }
@@ -48,13 +60,17 @@ public class AnalisadorLexico {
         String lexemaTemporario = "";
         char caractereAtual;
         char proximoCaractere;
-
         try {
             while (buffer1.ready()){
                 caractereAtual = (char) buffer1.read();
                 buffer2.skip(1);
+                if (isLiteralTexto || isLiteralChar){
+                    caracteresLidosLiteral++;
+                } else {
+                    caracteresLidos++;
+                }
                 
-                buffer2.mark(0);
+                buffer2.mark(1);
                 proximoCaractere = (char) buffer2.read();
                 buffer2.reset();
                                             
@@ -69,8 +85,54 @@ public class AnalisadorLexico {
                 // se estiver formando um literal texto, adiciona o caractere e continua
                 if (isLiteralTexto && caractereAtual != '"'){
                     lexemaTemporario = lexemaTemporario + caractereAtual;
+                    // se o proximo caractere for o fim do arquivo, volta caractere que inicio o literal e continua a analise
+                    if (proximoCaractere == (char) -1){
+                        isLiteralTexto = false;
+                        lexemaTemporario = "";
+                        buffer1.reset();
+                        resetBuffer2();
+                        buffer2.skip(caracteresLidos+2);
+                        linhaAtual = linhaLiteral;
+                        colunaAtual = colunaLiteral;                        
+                    } else if (proximoCaractere == '"'){
+                        Lexema lexema = new Lexema(lexemaTemporario, linhaLiteral, colunaLiteral+1);
+                        lexemaTemporario = "";
+                        int idSimbolo = addTabelaSimbolos(lexema);
+                        token = new LiteralTexto(idSimbolo, linhaLiteral, colunaLiteral+1);
+                        lastToken = token;
+                        isLiteralTexto = false;
+                        caracteresLidos += caracteresLidosLiteral;
+                        caracteresLidos = 0;
+                        return token;
+                    }
                     continue;
                 }
+                
+                // se estiver formando um literal char, adiciona o caractere e continua
+                if (isLiteralChar && caractereAtual != '\''){
+                    lexemaTemporario = lexemaTemporario + caractereAtual;
+                    // se o proximo caractere for o fim do arquivo, volta caractere que inicio o literal e continua a analise
+                    if (proximoCaractere == (char) -1){
+                        isLiteralTexto = false;
+                        lexemaTemporario = "";
+                        buffer1.reset();
+                        resetBuffer2();
+                        buffer2.skip(caracteresLidos+2);
+                        linhaAtual = linhaLiteral;
+                        colunaAtual = colunaLiteral;
+                    } else if (proximoCaractere == '\''){
+                        Lexema lexema = new Lexema(lexemaTemporario, linhaLiteral, colunaLiteral+1);
+                        lexemaTemporario = "";
+                        int idSimbolo = addTabelaSimbolos(lexema);
+                        token = new LiteralChar(idSimbolo, linhaLiteral, colunaLiteral+1);
+                        lastToken = token;
+                        isLiteralChar = false;
+                        caracteresLidos += caracteresLidosLiteral;
+                        caracteresLidos = 0;                        
+                        return token;                  
+                    }                    
+                    continue;
+                }                
                 
                 // se houver tentativa de inserir um caractere invalido...
                 if (!isSimboloValido(caractereAtual)){
@@ -86,12 +148,14 @@ public class AnalisadorLexico {
                 // armazena os caracteres em uma string temporaria até encontrar um delimitador...
                 while (!isCaractereDelimitador(auxCaractereAtual)){
                     lexemaTemporario = lexemaTemporario + auxCaractereAtual;
-                    buffer1.mark(2);
-                    auxProximoCaractere = (char) buffer1.read();
-                    buffer1.reset();
+                    buffer2.mark(2);
+                    auxProximoCaractere = (char) buffer2.read();
+                    buffer2.reset();
                     if (isCaractereDelimitador(auxProximoCaractere))
                         break;
                     auxCaractereAtual = (char) buffer1.read();
+                    buffer2.skip(1);
+                    caracteresLidos++;
                     // calcula linha e coluna
                     if (auxCaractereAtual == '\n'){
                         auxLinhaAtual++;
@@ -154,40 +218,44 @@ public class AnalisadorLexico {
                             token = new OperadorIgualdade(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
+                            buffer2.skip(1);
                         } else
                             token = new OperadorAtribuicao(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '>':{
                         if (proximoCaractere == '='){
                             token = new OperadorMaiorIgualQue(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
+                            buffer2.skip(1);
                         } else
                             token = new OperadorMaiorQue(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '<':{
                         if (proximoCaractere == '='){
                             token = new OperadorMenorIgualQue(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
+                            buffer2.skip(1);
                         } else
                             token = new OperadorMenorQue(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '!':{
                         if (proximoCaractere == '='){
                             token = new OperadorDiferenca(Character.toString(caractereAtual)+proximoCaractere,
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
+                            buffer2.skip(1);
                         } else
                             token = new Invalido(Character.toString(caractereAtual),linhaAtual, colunaAtual);
-                        addToken(token);
-                        break;
+                        return token;
+                        //break;
                     }
                     case '+':{
                         token = new OperadorSoma(caractereAtual, linhaAtual, colunaAtual);
@@ -224,29 +292,25 @@ public class AnalisadorLexico {
                     }
                     case '\'':{
                         token = new Delimitador(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        if (isLiteralChar){
-                            Lexema lexema = new Lexema(lexemaTemporario, linhaAtual, colunaAtual);
-                            int idSimbolo = addTabelaSimbolos(lexema);
-                            token = new LiteralChar(idSimbolo, linhaAtual, colunaAtual);
-                            addToken(token);
-                            lexemaTemporario = "";
-                        }                        
-                        isLiteralChar = !isLiteralChar;
-                        break;
+                        if (!(lastToken instanceof LiteralChar)){
+                            isLiteralChar = true;
+                            buffer1.mark(0);
+                            linhaLiteral = linhaAtual;
+                            colunaLiteral = colunaAtual;
+                        }
+                        return token;
+                        //break;
                     }
                     case '"':{
                         token = new Delimitador(caractereAtual, linhaAtual, colunaAtual);
-                        addToken(token);
-                        if (isLiteralTexto){
-                            Lexema lexema = new Lexema(lexemaTemporario, linhaAtual, colunaAtual);
-                            int idSimbolo = addTabelaSimbolos(lexema);
-                            token = new LiteralTexto(idSimbolo, linhaAtual, colunaAtual);
-                            addToken(token);
-                            lexemaTemporario = "";
+                        if (!(lastToken instanceof LiteralTexto)){
+                            isLiteralTexto = true;
+                            buffer1.mark(0);
+                            linhaLiteral = linhaAtual;
+                            colunaLiteral = colunaAtual;
                         }
-                        isLiteralTexto = !isLiteralTexto;
-                        break;
+                        return token;
+                        //break;
                     }
                     case ' ':
                     case '\t':
@@ -276,6 +340,7 @@ public class AnalisadorLexico {
      
         } catch (IOException e) {
             System.out.println("Falha ao ler arquivo fonte. " + e.getMessage());
+            e.printStackTrace();
         }
 
         return null;
@@ -399,5 +464,19 @@ public class AnalisadorLexico {
                     + " - " + lexema.getLinha() 
                     + " - " + lexema.getColuna());
         }        
+    }
+    
+    private void resetBuffer2(){
+        try {
+            this.buffer2.close();
+            InputStream fis2 = new FileInputStream(this.arquivoFonte);
+            buffer2 = new BufferedReader(new InputStreamReader(fis2));
+        } catch (FileNotFoundException e) {
+            System.out.println("Arquivo fonte não encontrado. " + e.getMessage());            
+        } catch (IOException e) {
+            System.out.println("Erro ao manipular fonte: " + e.getMessage());
+        }
+        
+        
     }
 }
