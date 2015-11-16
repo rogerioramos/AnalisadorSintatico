@@ -1,5 +1,5 @@
-teste = 1
-teste == 1
-coisa == 2
-if;
-identi = "if for"
+teste = "um literal
+de 
+varias linhas
+que termina aqui"
+linha5 = 6 6palavrainvalida teste

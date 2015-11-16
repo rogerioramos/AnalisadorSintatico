@@ -2,8 +2,6 @@ package analisadorlexico;
 
 import java.io.*;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import token.*;
 
 public class AnalisadorLexico {
@@ -25,7 +23,7 @@ public class AnalisadorLexico {
     
     private int linhaAtual = 1;
     private int colunaAtual = 0;
-    private int linhaLiteral = 0;
+    private int linhaLiteral = 1;
     private int colunaLiteral = 0;
     
     private boolean isLiteralTexto = false;
@@ -88,6 +86,7 @@ public class AnalisadorLexico {
                     // se o proximo caractere for o fim do arquivo, volta caractere que inicio o literal e continua a analise
                     if (proximoCaractere == (char) -1){
                         isLiteralTexto = false;
+                        errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Literal não terminado \""));                        
                         lexemaTemporario = "";
                         buffer1.reset();
                         resetBuffer2();
@@ -113,7 +112,8 @@ public class AnalisadorLexico {
                     lexemaTemporario = lexemaTemporario + caractereAtual;
                     // se o proximo caractere for o fim do arquivo, volta caractere que inicio o literal e continua a analise
                     if (proximoCaractere == (char) -1){
-                        isLiteralTexto = false;
+                        isLiteralChar = false;
+                        errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Literal não terminado '"));
                         lexemaTemporario = "";
                         buffer1.reset();
                         resetBuffer2();
@@ -219,6 +219,7 @@ public class AnalisadorLexico {
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
                             buffer2.skip(1);
+                            colunaAtual++;
                         } else
                             token = new OperadorAtribuicao(caractereAtual, linhaAtual, colunaAtual);
                         return token;
@@ -230,6 +231,7 @@ public class AnalisadorLexico {
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
                             buffer2.skip(1);
+                            colunaAtual++;
                         } else
                             token = new OperadorMaiorQue(caractereAtual, linhaAtual, colunaAtual);
                         return token;
@@ -241,6 +243,7 @@ public class AnalisadorLexico {
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
                             buffer2.skip(1);
+                            colunaAtual++;
                         } else
                             token = new OperadorMenorQue(caractereAtual, linhaAtual, colunaAtual);
                         return token;
@@ -252,6 +255,7 @@ public class AnalisadorLexico {
                                     linhaAtual, colunaAtual);
                             buffer1.skip(1);
                             buffer2.skip(1);
+                            colunaAtual++;
                         } else
                             token = new Invalido(Character.toString(caractereAtual),linhaAtual, colunaAtual);
                         return token;

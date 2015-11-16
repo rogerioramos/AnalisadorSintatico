@@ -28,7 +28,7 @@ public class Compilador {
         }
         
         analisadorLexico.printListaErros();
-        analisadorLexico.printListaTokens();
+        analisadorLexico.printTabelaSimbolos();
     }
     
 }
