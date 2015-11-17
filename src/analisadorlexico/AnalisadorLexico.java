@@ -90,7 +90,7 @@ public class AnalisadorLexico {
                         lexemaTemporario = "";
                         buffer1.reset();
                         resetBuffer2();
-                        buffer2.skip(caracteresLidos+2);
+                        buffer2.skip(caracteresLidos);
                         linhaAtual = linhaLiteral;
                         colunaAtual = colunaLiteral;                        
                     } else if (proximoCaractere == '"'){
@@ -117,7 +117,7 @@ public class AnalisadorLexico {
                         lexemaTemporario = "";
                         buffer1.reset();
                         resetBuffer2();
-                        buffer2.skip(caracteresLidos+2);
+                        buffer2.skip(caracteresLidos);
                         linhaAtual = linhaLiteral;
                         colunaAtual = colunaLiteral;
                     } else if (proximoCaractere == '\''){

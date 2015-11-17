@@ -1,5 +1,1 @@
-teste = "um literal
-de 
-varias linhas
-que termina aqui"
-linha5 = 6 6palavrainvalida teste
+teste = ""
