@@ -23,10 +23,10 @@ public class Compilador {
         Token token = analisadorLexico.getNextToken();
 
         while (token != null){
-            System.out.println(token.getTipo()+"-"+token.getLinha()+"-"+token.getColuna());
+            //System.out.println(token.getTipo()+"-"+token.getLinha()+"-"+token.getColuna());
             token = analisadorLexico.getNextToken();
         }
-        
+        analisadorLexico.printListaTokens();
         analisadorLexico.printListaErros();
         analisadorLexico.printTabelaSimbolos();
     }

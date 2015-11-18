@@ -1,1 +1,4 @@
-teste = ""
+funcao
+begin
+int	teste = 1
+end

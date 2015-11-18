@@ -102,6 +102,7 @@ public class AnalisadorLexico {
                         isLiteralTexto = false;
                         caracteresLidos += caracteresLidosLiteral;
                         caracteresLidos = 0;
+                        addToken(token);
                         return token;
                     }
                     continue;
@@ -128,7 +129,8 @@ public class AnalisadorLexico {
                         lastToken = token;
                         isLiteralChar = false;
                         caracteresLidos += caracteresLidosLiteral;
-                        caracteresLidos = 0;                        
+                        caracteresLidos = 0;
+                        addToken(token);
                         return token;                  
                     }                    
                     continue;
@@ -209,6 +211,7 @@ public class AnalisadorLexico {
                     lexemaTemporario = "";
                     linhaAtual = auxLinhaAtual;
                     colunaAtual = auxColunaAtual;
+                    addToken(token);
                     return token;
                 }
                 
@@ -222,6 +225,7 @@ public class AnalisadorLexico {
                             colunaAtual++;
                         } else
                             token = new OperadorAtribuicao(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -234,6 +238,7 @@ public class AnalisadorLexico {
                             colunaAtual++;
                         } else
                             token = new OperadorMaiorQue(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -246,6 +251,7 @@ public class AnalisadorLexico {
                             colunaAtual++;
                         } else
                             token = new OperadorMenorQue(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -258,11 +264,13 @@ public class AnalisadorLexico {
                             colunaAtual++;
                         } else
                             token = new Invalido(Character.toString(caractereAtual),linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
                     case '+':{
                         token = new OperadorSoma(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }                
@@ -271,17 +279,20 @@ public class AnalisadorLexico {
                             isLiteralNumeroNegativo = true;
                         } else {
                             token = new OperadorSubtracao(caractereAtual, linhaAtual, colunaAtual);
+                            addToken(token);
                             return token;
                         }
                         break;
                     }
                     case '/':{
                         token = new OperadorDivisao(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
                     case '*':{
                         token = new OperadorMultiplicacao(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -291,6 +302,7 @@ public class AnalisadorLexico {
                     case ']':
                     case ';':{
                         token = new Delimitador(caractereAtual, linhaAtual, colunaAtual);
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -302,6 +314,7 @@ public class AnalisadorLexico {
                             linhaLiteral = linhaAtual;
                             colunaLiteral = colunaAtual;
                         }
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -313,6 +326,7 @@ public class AnalisadorLexico {
                             linhaLiteral = linhaAtual;
                             colunaLiteral = colunaAtual;
                         }
+                        addToken(token);
                         return token;
                         //break;
                     }
@@ -325,6 +339,7 @@ public class AnalisadorLexico {
                     default: {
                         token = new Invalido(Character.toString(caractereAtual), linhaAtual, colunaAtual);
                         errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Caractere " + caractereAtual + " invalido"));
+                        addToken(token);
                         return token;
                     }
                 }                
@@ -335,10 +350,12 @@ public class AnalisadorLexico {
             if (isLiteralTexto){
                 errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Esperando \" após " + lexemaTemporario));
                 token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
+                addToken(token);
                 return token;
             } else if (isLiteralChar){
                 errosLexicos.add(new ErroLexico(linhaAtual, colunaAtual, "Esperando \' após " + lexemaTemporario));
                 token = new Invalido(lexemaTemporario, linhaAtual, colunaAtual);
+                addToken(token);
                 return token;
             }            
      
